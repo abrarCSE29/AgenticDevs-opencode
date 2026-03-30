@@ -8,6 +8,14 @@ This project configures specialized OpenCode subagents for executing web applica
 - **Documentation Output**: `docs/` directory in the project root
 - **Agent Interaction Model**: Autonomous pipeline with bidirectional feedback between agents
 
+## Project Folder Structure
+
+- **Base Path**: Relative to where OpenCode server starts
+- **Project Folder**: `projects/<project-name>/`
+- **Docs Location**: `projects/<project-name>/docs/`
+- **Templates**: Reference `docs/templates/` (read-only, shared across all projects)
+- **Root docs/**: Remains for shared templates only
+
 ## Agents
 
 | Agent | Mode | Purpose |
@@ -68,29 +76,32 @@ User describes project idea
 ### Pipeline Steps
 
 1. **Orchestrator** receives project idea and asks user: "SQL or NoSQL?"
-2. **Orchestrator** invokes `@business-analyst` with project description and DB preference
-3. **Business Analyst** checks clarity:
+2. **Orchestrator** extracts project name from user input (converts to kebab-case)
+3. **Orchestrator** creates folder: `projects/<project-name>/docs/`
+4. **Orchestrator** initializes `AGENTS.md` in the project folder
+5. **Orchestrator** invokes `@business-analyst` with project description, DB preference, and project context
+6. **Business Analyst** checks clarity:
    - If vague → returns `CLARIFICATION_NEEDED` to orchestrator → orchestrator asks user → re-invokes BA
    - If clear → proceeds
-4. **Business Analyst** creates BRD and PRD in `docs/` (DB preference noted in PRD)
-5. **Business Analyst** invokes `@solution-architect` with BRD/PRD content and DB preference (mandatory)
-6. **Solution Architect** reviews requirements:
+7. **Business Analyst** creates BRD and PRD in `projects/<project-name>/docs/` (DB preference noted in PRD)
+8. **Business Analyst** invokes `@solution-architect` with BRD/PRD content and DB preference (mandatory)
+9. **Solution Architect** reviews requirements:
    - If gaps → returns `CLARIFICATION_NEEDED` to orchestrator → orchestrator asks user → re-invokes SA
    - If solid → proceeds
-7. **Solution Architect** collaborates with BA for requirement gaps (max 1 round)
-8. **Solution Architect** designs:
-   - **Caching Strategy**: CDN/Edge, Application (Redis), HTTP caching
-   - **RBAC Model**: API-level permissions + UI-level component visibility
-   - **Scalability Strategy**: Per-component capacity, triggers, scaling actions
-9. **Solution Architect** creates `architecture-*.md` in `docs/`
-10. **Solution Architect** invokes the appropriate DB agent based on DB preference:
-    - SQL → `@db-sql-admin`
-    - NoSQL → `@db-nosql-admin`
-11. **DB Agent** reads BRD/PRD/architecture, designs database schema and data model
-12. **DB Agent** creates `database-*.md` in `docs/`
-13. **Solution Architect** creates `best-practices-*.md` in `docs/`
-14. **Solution Architect** returns summary to orchestrator
-15. **Orchestrator** presents results to user
+10. **Solution Architect** collaborates with BA for requirement gaps (max 1 round)
+11. **Solution Architect** designs:
+    - **Caching Strategy**: CDN/Edge, Application (Redis), HTTP caching
+    - **RBAC Model**: API-level permissions + UI-level component visibility
+    - **Scalability Strategy**: Per-component capacity, triggers, scaling actions
+12. **Solution Architect** creates `architecture-*.md` in `projects/<project-name>/docs/`
+13. **Solution Architect** invokes the appropriate DB agent based on DB preference:
+      - SQL → `@db-sql-admin`
+      - NoSQL → `@db-nosql-admin`
+14. **DB Agent** reads BRD/PRD/architecture, designs database schema and data model
+15. **DB Agent** creates `database-*.md` in `projects/<project-name>/docs/`
+16. **Solution Architect** creates `best-practices-*.md` in `projects/<project-name>/docs/`
+17. **Solution Architect** returns summary to orchestrator
+18. **Orchestrator** presents results to user
 
 ### Clarification Routing
 
@@ -155,11 +166,11 @@ The SA must address these for EVERY project:
 ## Documentation Standards
 
 ### File Naming
-- BRD: `docs/brd-<project-name>.md` (e.g., `docs/brd-ecommerce-platform.md`)
-- PRD: `docs/prd-<project-name>.md` (e.g., `docs/prd-ecommerce-platform.md`)
-- Architecture: `docs/architecture-<project-name>.md`
-- Best Practices: `docs/best-practices-<project-name>.md`
-- Database: `docs/database-<project-name>.md`
+- BRD: `projects/<project-name>/docs/brd-<project-name>.md` (e.g., `projects/ecommerce-platform/docs/brd-ecommerce-platform.md`)
+- PRD: `projects/<project-name>/docs/prd-<project-name>.md` (e.g., `projects/ecommerce-platform/docs/prd-ecommerce-platform.md`)
+- Architecture: `projects/<project-name>/docs/architecture-<project-name>.md`
+- Best Practices: `projects/<project-name>/docs/best-practices-<project-name>.md`
+- Database: `projects/<project-name>/docs/database-<project-name>.md`
 
 ### Templates
 Use templates in `docs/templates/` as starting points. Follow the section structure defined in each template.

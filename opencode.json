@@ -2,24 +2,24 @@
   "$schema": "https://opencode.ai/config.json",
   "instructions": ["AGENTS.md"],
   "agent": {
-    "project-orchestrator": {
-      "description": "Orchestrates autonomous document creation. Give it a project idea and it automatically delegates to Business Analyst, Solution Architect, and Database Administrators to produce complete project documentation.",
-      "mode": "primary",
-      "temperature": 0.1,
-      "steps": 30,
-      "permission": {
-        "edit": "deny",
-        "bash": "deny",
-        "webfetch": "allow",
-        "task": {
-          "*": "deny",
-          "business-analyst": "allow",
-          "solution-architect": "allow",
-          "db-sql-admin": "allow",
-          "db-nosql-admin": "allow"
-        }
-      }
-    },
+"project-orchestrator": {
+       "description": "Orchestrates autonomous document creation with folder-per-project workflow. Extracts project name from user input, creates projects/<project-name>/ folder, initializes AGENTS.md, then delegates to Business Analyst, Solution Architect, and Database Administrators to produce complete project documentation within that project folder.",
+       "mode": "primary",
+       "temperature": 0.1,
+       "steps": 30,
+       "permission": {
+         "edit": "deny",
+         "bash": "deny",
+         "webfetch": "allow",
+         "task": {
+           "*": "deny",
+           "business-analyst": "allow",
+           "solution-architect": "allow",
+           "db-sql-admin": "allow",
+           "db-nosql-admin": "allow"
+         }
+       }
+     },
     "business-analyst": {
       "description": "Creates BRD and PRD for web application projects. Delegates to Solution Architect after completion.",
       "mode": "subagent",
