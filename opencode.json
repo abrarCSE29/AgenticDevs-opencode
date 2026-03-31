@@ -11,13 +11,14 @@
          "edit": "deny",
          "bash": "deny",
          "webfetch": "allow",
-         "task": {
-           "*": "deny",
-           "business-analyst": "allow",
-           "solution-architect": "allow",
-           "db-sql-admin": "allow",
-           "db-nosql-admin": "allow"
-         }
+        "task": {
+          "*": "deny",
+          "business-analyst": "allow",
+          "solution-architect": "allow",
+          "db-sql-admin": "allow",
+          "db-nosql-admin": "allow",
+          "s3-docs-uploader": "allow"
+        }
        }
      },
     "business-analyst": {
@@ -78,6 +79,17 @@
         "edit": "allow",
         "bash": "deny",
         "webfetch": "allow"
+      }
+    },
+    "s3-docs-uploader": {
+      "description": "Uploads generated project docs from projects/<project-name>/docs/ to AWS S3 and returns public URLs. Strictly scoped to the project's docs directory only.",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "steps": 8,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "webfetch": "deny"
       }
     }
   },

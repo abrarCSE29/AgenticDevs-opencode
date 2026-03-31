@@ -25,6 +25,7 @@ This project configures specialized OpenCode subagents for executing web applica
 | `solution-architect` | Subagent | Reviews requirements, designs caching/RBAC/scalability, creates architecture, delegates to DB agents |
 | `db-sql-admin` | Subagent | Designs SQL database architecture and data models |
 | `db-nosql-admin` | Subagent | Designs NoSQL database architecture and data models |
+| `s3-docs-uploader` | Subagent | Uploads project docs to AWS S3 and returns public URLs |
 
 ### Switching to Orchestrator
 
@@ -63,14 +64,20 @@ User describes project idea
 │ Solution Architect│ ────────────────▶│ db-sql-admin OR  │
 │                   │  delegates       │ db-nosql-admin   │
 │                   │ ◀──────────────── │                  │
-└──────────────────┘   DB design back   └──────────────────┘
-         │
+└────────┬─────────┘   DB design back   └──────────────────┘
+         │ Task tool
+         ▼
+┌──────────────────┐
+│  S3 Docs Uploader │  Uploads docs to S3
+└────────┬─────────┘
+         │ URLs back
          ▼
   docs/brd-*.md
   docs/prd-*.md
   docs/architecture-*.md
   docs/best-practices-*.md
   docs/database-*.md
+  S3 public URLs
 ```
 
 ### Pipeline Steps
@@ -101,7 +108,9 @@ User describes project idea
 15. **DB Agent** creates `database-*.md` in `projects/<project-name>/docs/`
 16. **Solution Architect** creates `best-practices-*.md` in `projects/<project-name>/docs/`
 17. **Solution Architect** returns summary to orchestrator
-18. **Orchestrator** presents results to user
+18. **Orchestrator** invokes `@s3-docs-uploader` with project name and docs directory path
+19. **S3 Docs Uploader** uploads all docs to S3 and returns public URLs
+20. **Orchestrator** presents results and S3 URLs to user
 
 ### Clarification Routing
 
@@ -132,6 +141,8 @@ Max 1 clarification round per agent. After that, agents make reasonable assumpti
 - **SA → DB Agent**: SA delegates database design to the appropriate DB agent
 - **DB Agent → SA**: DB agent returns database design to SA
 - **SA → Orchestrator**: Final summary after all docs created
+- **Orchestrator → S3 Docs Uploader**: Orchestrator invokes S3 uploader with project name and docs path
+- **S3 Docs Uploader → Orchestrator**: Returns S3 public URLs for all uploaded docs
 - **Max feedback rounds**: 1 (prevents infinite loops; remaining issues become assumptions)
 
 ### Solution Architect Responsibilities
@@ -157,11 +168,12 @@ The SA must address these for EVERY project:
 
 | Agent | Max Steps | Can Invoke |
 |-------|-----------|-----------|
-| Orchestrator | 30 | BA, SA, db-sql-admin, db-nosql-admin |
+| Orchestrator | 30 | BA, SA, db-sql-admin, db-nosql-admin, s3-docs-uploader |
 | Business Analyst | 12 | SA |
 | Solution Architect | 18 | BA, db-sql-admin, db-nosql-admin |
 | DB SQL Admin | 15 | None |
 | DB NoSQL Admin | 15 | None |
+| S3 Docs Uploader | 8 | None |
 
 ## Documentation Standards
 
