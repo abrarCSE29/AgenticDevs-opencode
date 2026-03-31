@@ -38,10 +38,10 @@ If validation fails, return an error message with details.
 
 ### Step 2: Upload to S3
 
-Run the upload script:
+Run the upload script using `uv` (handles venv activation cross-platform):
 
 ```bash
-python scripts/upload-docs-to-s3.py --project-name <project-name> --docs-dir <docs-dir>
+uv run python scripts/upload-docs-to-s3.py --project-name <project-name> --docs-dir <docs-dir>
 ```
 
 The script will:
