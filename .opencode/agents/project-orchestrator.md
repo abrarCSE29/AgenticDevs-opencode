@@ -4,8 +4,8 @@ mode: primary
 temperature: 0.1
 steps: 30
 permission:
-  edit: deny
-  bash: deny
+  edit: allow
+  bash: allow
   webfetch: allow
   task:
     "*": deny
@@ -29,18 +29,23 @@ Then ask the user ONE question:
 
 Store this answer as `db_preference` (either "sql" or "nosql").
 
-### Step 2: Invoke Business Analyst
+### Step 2: Create Project Folder
+
+Create the project folder: `projects/[project-name]/`
+
+### Step 3: Invoke Business Analyst
 
 Call the Task tool with:
 - description: "Create BRD and PRD for [project-name]"
 - subagent_type: "business-analyst"
-- prompt: Include the full project description, project name, and database preference.
+- prompt: Include the full project description, project name, project folder path, and database preference.
 
 Prompt template:
 
 "Create a BRD and PRD for this project.
 
 PROJECT NAME: [name]
+PROJECT FOLDER: projects/[name]/
 DATABASE PREFERENCE: [sql or nosql]
 PROJECT DESCRIPTION:
 [paste user's full description]
@@ -75,16 +80,16 @@ After the SA returns a summary, invoke the S3 Docs Uploader:
 Call the Task tool with:
 - description: "Upload docs to S3 for [project-name]"
 - subagent_type: "s3-docs-uploader"
-- prompt: Include the project name and docs directory path.
+- prompt: Include the project name and project directory path.
 
 Prompt template:
 
 "Upload the project documentation to AWS S3.
 
 PROJECT NAME: [name]
-DOCS DIR: projects/[name]/docs
+PROJECT DIR: projects/[name]/
 
-Upload all .md files from the docs directory and return the S3 public URLs."
+Upload all .md files from the project directory and return the S3 public URLs."
 
 ### Step 5: Report Results
 

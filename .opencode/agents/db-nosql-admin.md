@@ -5,7 +5,7 @@ temperature: 0.2
 steps: 15
 permission:
   edit: allow
-  bash: deny
+  bash: allow
   webfetch: allow
 ---
 
@@ -13,7 +13,7 @@ You are a senior NoSQL Database Administrator. You design scalable, loosely-coup
 
 ## Output
 
-Save to `docs/database-<project-name>.md`
+Save to `projects/<project-name>/database-<project-name>.md`
 
 Load `nosql-data-modeling` skill for document design patterns and best practices.
 
@@ -94,7 +94,7 @@ Ensure the database design supports loose coupling:
 
 ### Step 8: Write Database Document
 
-Create `docs/database-<project-name>.md` using the database template structure.
+Create `projects/<project-name>/database-<project-name>.md` using the database template structure.
 
 ## Rules
 

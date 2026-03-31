@@ -5,10 +5,10 @@ Uses an existing bucket (from AWS_S3_BUCKET env var) and creates a folder
 named after the project, then uploads all .md files there.
 
 Usage:
-    python scripts/upload-docs-to-s3.py --project-name <name> --docs-dir <path>
+    python scripts/upload-docs-to-s3.py --project-name <name> --project-dir <path>
 
 Security:
-    - Validates that docs_dir is within the projects/ directory
+    - Validates that project_dir is within the projects/ directory
     - Only uploads .md files
     - Bucket name is read from AWS_S3_BUCKET environment variable
 """
@@ -27,9 +27,9 @@ except ImportError:
     sys.exit(1)
 
 
-def validate_docs_dir(docs_dir: str) -> bool:
-    """Assert that docs_dir is within the projects/ directory."""
-    resolved = os.path.realpath(docs_dir)
+def validate_project_dir(project_dir: str) -> bool:
+    """Assert that project_dir is within the projects/ directory."""
+    resolved = os.path.realpath(project_dir)
     project_root = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "projects"))
     if not resolved.startswith(project_root):
         return False
@@ -38,12 +38,12 @@ def validate_docs_dir(docs_dir: str) -> bool:
     return True
 
 
-def upload_files(s3_client, docs_dir: str, bucket_name: str, project_name: str, region: str) -> dict:
-    """Upload all .md files from docs_dir to S3 under a project-name folder."""
+def upload_files(s3_client, project_dir: str, bucket_name: str, project_name: str, region: str) -> dict:
+    """Upload all .md files from project_dir to S3 under a project-name folder."""
     urls = {}
-    docs_path = Path(docs_dir)
+    project_path = Path(project_dir)
 
-    for md_file in sorted(docs_path.glob("*.md")):
+    for md_file in sorted(project_path.glob("*.md")):
         if not md_file.is_file():
             continue
 
@@ -55,7 +55,7 @@ def upload_files(s3_client, docs_dir: str, bucket_name: str, project_name: str, 
                 s3_key,
                 ExtraArgs={
                     "ContentType": "text/markdown",
-                    "ContentDisposition": "attachment" 
+                    "ContentDisposition": "attachment"
                 },
             )
             url = f"https://{bucket_name}.s3.{region}.amazonaws.com/{s3_key}"
@@ -70,23 +70,23 @@ def upload_files(s3_client, docs_dir: str, bucket_name: str, project_name: str, 
 def main():
     parser = argparse.ArgumentParser(description="Upload project docs to AWS S3")
     parser.add_argument("--project-name", required=True, help="Project name (kebab-case)")
-    parser.add_argument("--docs-dir", required=True, help="Path to the docs directory")
+    parser.add_argument("--project-dir", required=True, help="Path to the project directory")
     parser.add_argument("--region", default="us-east-1", help="AWS region (default: us-east-1)")
     args = parser.parse_args()
 
-    docs_dir = os.path.realpath(args.docs_dir)
+    project_dir = os.path.realpath(args.project_dir)
 
-    if not validate_docs_dir(docs_dir):
+    if not validate_project_dir(project_dir):
         print(json.dumps({
-            "error": f"Invalid docs directory. Must be within projects/. Got: {args.docs_dir}"
+            "error": f"Invalid project directory. Must be within projects/. Got: {args.project_dir}"
         }))
         sys.exit(1)
 
-    md_files = list(Path(docs_dir).glob("*.md"))
+    md_files = list(Path(project_dir).glob("*.md"))
     if not md_files:
-        print(json.dumps({"error": f"No .md files found in {docs_dir}"}))
+        print(json.dumps({"error": f"No .md files found in {project_dir}"}))
         sys.exit(1)
-        
+
     from dotenv import load_dotenv
     load_dotenv()
 
@@ -96,6 +96,8 @@ def main():
         sys.exit(1)
 
     region = os.getenv("AWS_S3_REGION")
+    if not region:
+        region = "us-east-1"
 
     try:
         s3_client = boto3.client("s3", region_name=region)
@@ -105,7 +107,7 @@ def main():
         }))
         sys.exit(1)
 
-    urls = upload_files(s3_client, docs_dir, bucket_name, args.project_name, region)
+    urls = upload_files(s3_client, project_dir, bucket_name, args.project_name, region)
 
     result = {
         "bucket": bucket_name,

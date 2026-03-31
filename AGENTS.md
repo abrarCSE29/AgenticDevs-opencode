@@ -5,14 +5,14 @@ This project configures specialized OpenCode subagents for executing web applica
 ## Project Context
 
 - **Domain**: Web applications (React/Next.js frontends, Node.js/Express backends, API-first architecture)
-- **Documentation Output**: `docs/` directory in the project root
+- **Documentation Output**: `projects/<project-name>/` directory (no separate docs/ subfolder)
 - **Agent Interaction Model**: Autonomous pipeline with bidirectional feedback between agents
 
 ## Project Folder Structure
 
 - **Base Path**: Relative to where OpenCode server starts
 - **Project Folder**: `projects/<project-name>/`
-- **Docs Location**: `projects/<project-name>/docs/`
+- **Docs Location**: `projects/<project-name>/` (root of project folder)
 - **Templates**: Reference `docs/templates/` (read-only, shared across all projects)
 - **Root docs/**: Remains for shared templates only
 
@@ -72,11 +72,11 @@ User describes project idea
 └────────┬─────────┘
          │ URLs back
          ▼
-  docs/brd-*.md
-  docs/prd-*.md
-  docs/architecture-*.md
-  docs/best-practices-*.md
-  docs/database-*.md
+  projects/<name>/brd-*.md
+  projects/<name>/prd-*.md
+  projects/<name>/architecture-*.md
+  projects/<name>/best-practices-*.md
+  projects/<name>/database-*.md
   S3 public URLs
 ```
 
@@ -84,13 +84,13 @@ User describes project idea
 
 1. **Orchestrator** receives project idea and asks user: "SQL or NoSQL?"
 2. **Orchestrator** extracts project name from user input (converts to kebab-case)
-3. **Orchestrator** creates folder: `projects/<project-name>/docs/`
+3. **Orchestrator** creates folder: `projects/<project-name>/`
 4. **Orchestrator** initializes `AGENTS.md` in the project folder
 5. **Orchestrator** invokes `@business-analyst` with project description, DB preference, and project context
 6. **Business Analyst** checks clarity:
    - If vague → returns `CLARIFICATION_NEEDED` to orchestrator → orchestrator asks user → re-invokes BA
    - If clear → proceeds
-7. **Business Analyst** creates BRD and PRD in `projects/<project-name>/docs/` (DB preference noted in PRD)
+7. **Business Analyst** creates BRD and PRD in `projects/<project-name>/` (DB preference noted in PRD)
 8. **Business Analyst** invokes `@solution-architect` with BRD/PRD content and DB preference (mandatory)
 9. **Solution Architect** reviews requirements:
    - If gaps → returns `CLARIFICATION_NEEDED` to orchestrator → orchestrator asks user → re-invokes SA
@@ -100,15 +100,15 @@ User describes project idea
     - **Caching Strategy**: CDN/Edge, Application (Redis), HTTP caching
     - **RBAC Model**: API-level permissions + UI-level component visibility
     - **Scalability Strategy**: Per-component capacity, triggers, scaling actions
-12. **Solution Architect** creates `architecture-*.md` in `projects/<project-name>/docs/`
+12. **Solution Architect** creates `architecture-*.md` in `projects/<project-name>/`
 13. **Solution Architect** invokes the appropriate DB agent based on DB preference:
       - SQL → `@db-sql-admin`
       - NoSQL → `@db-nosql-admin`
 14. **DB Agent** reads BRD/PRD/architecture, designs database schema and data model
-15. **DB Agent** creates `database-*.md` in `projects/<project-name>/docs/`
-16. **Solution Architect** creates `best-practices-*.md` in `projects/<project-name>/docs/`
+15. **DB Agent** creates `database-*.md` in `projects/<project-name>/`
+16. **Solution Architect** creates `best-practices-*.md` in `projects/<project-name>/`
 17. **Solution Architect** returns summary to orchestrator
-18. **Orchestrator** invokes `@s3-docs-uploader` with project name and docs directory path
+18. **Orchestrator** invokes `@s3-docs-uploader` with project name and project directory path
 19. **S3 Docs Uploader** uploads all docs to S3 and returns public URLs
 20. **Orchestrator** presents results and S3 URLs to user
 
@@ -141,7 +141,7 @@ Max 1 clarification round per agent. After that, agents make reasonable assumpti
 - **SA → DB Agent**: SA delegates database design to the appropriate DB agent
 - **DB Agent → SA**: DB agent returns database design to SA
 - **SA → Orchestrator**: Final summary after all docs created
-- **Orchestrator → S3 Docs Uploader**: Orchestrator invokes S3 uploader with project name and docs path
+- **Orchestrator → S3 Docs Uploader**: Orchestrator invokes S3 uploader with project name and project path
 - **S3 Docs Uploader → Orchestrator**: Returns S3 public URLs for all uploaded docs
 - **Max feedback rounds**: 1 (prevents infinite loops; remaining issues become assumptions)
 
@@ -178,11 +178,11 @@ The SA must address these for EVERY project:
 ## Documentation Standards
 
 ### File Naming
-- BRD: `projects/<project-name>/docs/brd-<project-name>.md` (e.g., `projects/ecommerce-platform/docs/brd-ecommerce-platform.md`)
-- PRD: `projects/<project-name>/docs/prd-<project-name>.md` (e.g., `projects/ecommerce-platform/docs/prd-ecommerce-platform.md`)
-- Architecture: `projects/<project-name>/docs/architecture-<project-name>.md`
-- Best Practices: `projects/<project-name>/docs/best-practices-<project-name>.md`
-- Database: `projects/<project-name>/docs/database-<project-name>.md`
+- BRD: `projects/<project-name>/brd-<project-name>.md` (e.g., `projects/ecommerce-platform/brd-ecommerce-platform.md`)
+- PRD: `projects/<project-name>/prd-<project-name>.md` (e.g., `projects/ecommerce-platform/prd-ecommerce-platform.md`)
+- Architecture: `projects/<project-name>/architecture-<project-name>.md`
+- Best Practices: `projects/<project-name>/best-practices-<project-name>.md`
+- Database: `projects/<project-name>/database-<project-name>.md`
 
 ### Templates
 Use templates in `docs/templates/` as starting points. Follow the section structure defined in each template.
@@ -196,12 +196,12 @@ Use templates in `docs/templates/` as starting points. Follow the section struct
 
 - TypeScript with strict mode for all web application code
 - Follow the architecture decisions documented by the Solution Architect
-- Adhere to best practices documented in `docs/best-practices-*.md`
-- Follow database design documented in `docs/database-*.md`
+- Adhere to best practices documented in `projects/<project-name>/best-practices-*.md`
+- Follow database design documented in `projects/<project-name>/database-*.md`
 
 ## General Rules
 
-- Always generate docs in the `docs/` folder
+- Always generate docs in the `projects/<project-name>/` folder
 - Use markdown formatting consistently across all generated documents
 - Keep documents professional and suitable for stakeholder review
 - Include a table of contents for documents exceeding 100 lines

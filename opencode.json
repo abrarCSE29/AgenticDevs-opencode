@@ -3,14 +3,17 @@
   "instructions": ["AGENTS.md"],
   "default_agent": "project-orchestrator",
   "agent": {
-"project-orchestrator": {
+ "project-orchestrator": {
        "description": "Orchestrates autonomous document creation with folder-per-project workflow. Extracts project name from user input, creates projects/<project-name>/ folder, initializes AGENTS.md, then delegates to Business Analyst, Solution Architect, and Database Administrators to produce complete project documentation within that project folder.",
        "mode": "primary",
        "temperature": 0.1,
        "steps": 30,
+       "tools": {
+         "question": true
+       },
        "permission": {
-         "edit": "deny",
-         "bash": "deny",
+         "edit": "allow",
+         "bash": "allow",
          "webfetch": "allow",
         "task": {
           "*": "deny",
@@ -28,11 +31,12 @@
       "temperature": 0.2,
       "steps": 12,
       "tools": {
-        "task": true
+        "task": true,
+        "question": true
       },
       "permission": {
         "edit": "allow",
-        "bash": "deny",
+        "bash": "allow",
         "webfetch": "allow",
         "task": {
           "*": "deny",
@@ -46,7 +50,8 @@
       "temperature": 0.2,
       "steps": 18,
       "tools": {
-        "task": true
+        "task": true,
+        "question": true
       },
       "permission": {
         "edit": "allow",
@@ -65,9 +70,12 @@
       "mode": "subagent",
       "temperature": 0.2,
       "steps": 15,
+      "tools": {
+        "question": true
+      },
       "permission": {
         "edit": "allow",
-        "bash": "deny",
+        "bash": "ask",
         "webfetch": "allow"
       }
     },
@@ -76,17 +84,23 @@
       "mode": "subagent",
       "temperature": 0.2,
       "steps": 15,
+      "tools": {
+        "question": true
+      },
       "permission": {
         "edit": "allow",
-        "bash": "deny",
+        "bash": "ask",
         "webfetch": "allow"
       }
     },
     "s3-docs-uploader": {
-      "description": "Uploads generated project docs from projects/<project-name>/docs/ to AWS S3 and returns public URLs. Strictly scoped to the project's docs directory only.",
+      "description": "Uploads generated project docs from projects/<project-name>/ to AWS S3 and returns public URLs. Strictly scoped to the project directory only.",
       "mode": "subagent",
       "temperature": 0.1,
       "steps": 8,
+      "tools": {
+        "question": true
+      },
       "permission": {
         "edit": "deny",
         "bash": "allow",
