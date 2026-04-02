@@ -26,26 +26,21 @@
        }
      },
     "business-analyst": {
-      "description": "Creates BRD and PRD for web application projects. Delegates to Solution Architect after completion.",
+      "description": "Creates BRD and PRD for web application projects.",
       "mode": "subagent",
       "temperature": 0.2,
       "steps": 12,
       "tools": {
-        "task": true,
         "question": true
       },
       "permission": {
         "edit": "allow",
-        "bash": "allow",
-        "webfetch": "allow",
-        "task": {
-          "*": "deny",
-          "solution-architect": "allow"
-        }
+        "bash": "deny",
+        "webfetch": "allow"
       }
     },
     "solution-architect": {
-      "description": "Reviews requirements, creates architecture + best practices docs, and delegates to DB agents for database design.",
+      "description": "Reviews requirements, creates architecture + best practices docs, designs caching, RBAC, and scalability.",
       "mode": "subagent",
       "temperature": 0.2,
       "steps": 18,
@@ -55,13 +50,11 @@
       },
       "permission": {
         "edit": "allow",
-        "bash": "ask",
+        "bash": "deny",
         "webfetch": "allow",
         "task": {
           "*": "deny",
-          "business-analyst": "allow",
-          "db-sql-admin": "allow",
-          "db-nosql-admin": "allow"
+          "business-analyst": "allow"
         }
       }
     },
@@ -75,7 +68,7 @@
       },
       "permission": {
         "edit": "allow",
-        "bash": "ask",
+        "bash": "deny",
         "webfetch": "allow"
       }
     },
@@ -89,7 +82,7 @@
       },
       "permission": {
         "edit": "allow",
-        "bash": "ask",
+        "bash": "deny",
         "webfetch": "allow"
       }
     },

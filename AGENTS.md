@@ -6,7 +6,7 @@ This project configures specialized OpenCode subagents for executing web applica
 
 - **Domain**: Web applications (React/Next.js frontends, Node.js/Express backends, API-first architecture)
 - **Documentation Output**: `projects/<project-name>/` directory (no separate docs/ subfolder)
-- **Agent Interaction Model**: Autonomous pipeline with bidirectional feedback between agents
+- **Agent Interaction Model**: Orchestrator-centric pipeline where PO is the ONLY orchestrator
 
 ## Project Folder Structure
 
@@ -20,9 +20,9 @@ This project configures specialized OpenCode subagents for executing web applica
 
 | Agent | Mode | Purpose |
 |-------|------|---------|
-| `project-orchestrator` | Primary | Receives project idea, manages pipeline, routes clarifications |
-| `business-analyst` | Subagent | Creates BRD and PRD documents |
-| `solution-architect` | Subagent | Reviews requirements, designs caching/RBAC/scalability, creates architecture, delegates to DB agents |
+| `project-orchestrator` | Primary | ONLY orchestrator. Receives project idea, delegates to agents one at a time, routes clarifications |
+| `business-analyst` | Subagent | Creates BRD and PRD documents, returns to PO |
+| `solution-architect` | Subagent | Reviews requirements, designs caching/RBAC/scalability, creates architecture + best practices |
 | `db-sql-admin` | Subagent | Designs SQL database architecture and data models |
 | `db-nosql-admin` | Subagent | Designs NoSQL database architecture and data models |
 | `s3-docs-uploader` | Subagent | Uploads project docs to AWS S3 and returns public URLs |
@@ -44,73 +44,87 @@ You can also invoke agents directly:
 
 ## Autonomous Workflow
 
-The system works as a self-managing pipeline:
+The Project Orchestrator is the ONLY orchestrator. Every agent returns results to the PO, and the PO decides what to invoke next.
 
 ```
 User describes project idea
         │
         ▼
 ┌──────────────────┐
-│  Orchestrator     │  ← asks: "SQL or NoSQL?"
+│  Orchestrator     │  Central hub — invokes agents one at a time
 └────────┬─────────┘
          │ Task tool
          ▼
 ┌──────────────────┐
-│  Business Analyst │  BRD + PRD (DB preference noted)
+│  Business Analyst │  Creates BRD + PRD
+└────────┬─────────┘
+         │ Returns to PO
+         ▼
+┌──────────────────┐
+│  Orchestrator     │  Invokes SA next
 └────────┬─────────┘
          │ Task tool
          ▼
 ┌──────────────────┐     Task tool     ┌──────────────────┐
-│ Solution Architect│ ────────────────▶│ db-sql-admin OR  │
-│                   │  delegates       │ db-nosql-admin   │
+│ Solution Architect│ ────────────────▶│ Business Analyst │
+│  arch + best-prac │  clarification   │  (fixes gaps)    │
 │                   │ ◀──────────────── │                  │
-└────────┬─────────┘   DB design back   └──────────────────┘
+└────────┬─────────┘                   └──────────────────┘
+         │ Returns to PO
+         ▼
+┌──────────────────┐
+│  Orchestrator     │  ← asks: "SQL or NoSQL?" (optional)
+└────────┬─────────┘
+         │ Task tool (if user wants DB doc)
+         ▼
+┌──────────────────┐
+│  DB Agent         │  db-sql-admin OR db-nosql-admin (optional)
+└────────┬─────────┘
+         │ Returns to PO
+         ▼
+┌──────────────────┐
+│  Orchestrator     │  Invokes S3 upload
+└────────┬─────────┘
          │ Task tool
          ▼
 ┌──────────────────┐
 │  S3 Docs Uploader │  Uploads docs to S3
 └────────┬─────────┘
-         │ URLs back
+         │ Returns URLs to PO
          ▼
-  projects/<name>/brd-*.md
-  projects/<name>/prd-*.md
-  projects/<name>/architecture-*.md
-  projects/<name>/best-practices-*.md
-  projects/<name>/database-*.md
-  S3 public URLs
+┌──────────────────┐
+│  Orchestrator     │  Presents final results to user
+└──────────────────┘
 ```
 
 ### Pipeline Steps
 
-1. **Orchestrator** receives project idea and asks user: "SQL or NoSQL?"
-2. **Orchestrator** extracts project name from user input (converts to kebab-case)
-3. **Orchestrator** creates folder: `projects/<project-name>/`
-4. **Orchestrator** initializes `AGENTS.md` in the project folder
-5. **Orchestrator** invokes `@business-analyst` with project description, DB preference, and project context
-6. **Business Analyst** checks clarity:
+1. **Orchestrator** receives project idea and extracts project name (converts to kebab-case)
+2. **Orchestrator** creates folder: `projects/<project-name>/`
+3. **Orchestrator** invokes `@business-analyst` with project description and project folder path
+4. **Business Analyst** checks clarity:
    - If vague → returns `CLARIFICATION_NEEDED` to orchestrator → orchestrator asks user → re-invokes BA
    - If clear → proceeds
-7. **Business Analyst** creates BRD and PRD in `projects/<project-name>/` (DB preference noted in PRD)
-8. **Business Analyst** invokes `@solution-architect` with BRD/PRD content and DB preference (mandatory)
-9. **Solution Architect** reviews requirements:
-   - If gaps → returns `CLARIFICATION_NEEDED` to orchestrator → orchestrator asks user → re-invokes SA
+5. **Business Analyst** creates BRD and PRD in `projects/<project-name>/`
+6. **Business Analyst** returns summary to Orchestrator
+7. **Orchestrator** invokes `@solution-architect` with BRD/PRD file paths
+8. **Solution Architect** reviews requirements:
+   - If gaps → invokes `@business-analyst` directly for clarification → BA fixes → SA continues
    - If solid → proceeds
-10. **Solution Architect** collaborates with BA for requirement gaps (max 1 round)
-11. **Solution Architect** designs:
-    - **Caching Strategy**: CDN/Edge, Application (Redis), HTTP caching
-    - **RBAC Model**: API-level permissions + UI-level component visibility
-    - **Scalability Strategy**: Per-component capacity, triggers, scaling actions
-12. **Solution Architect** creates `architecture-*.md` in `projects/<project-name>/`
-13. **Solution Architect** invokes the appropriate DB agent based on DB preference:
-      - SQL → `@db-sql-admin`
-      - NoSQL → `@db-nosql-admin`
-14. **DB Agent** reads BRD/PRD/architecture, designs database schema and data model
-15. **DB Agent** creates `database-*.md` in `projects/<project-name>/`
-16. **Solution Architect** creates `best-practices-*.md` in `projects/<project-name>/`
-17. **Solution Architect** returns summary to orchestrator
-18. **Orchestrator** invokes `@s3-docs-uploader` with project name and project directory path
-19. **S3 Docs Uploader** uploads all docs to S3 and returns public URLs
-20. **Orchestrator** presents results and S3 URLs to user
+9. **Solution Architect** designs:
+   - **Caching Strategy**: CDN/Edge, Application (Redis), HTTP caching
+   - **RBAC Model**: API-level permissions + UI-level component visibility
+   - **Scalability Strategy**: Per-component capacity, triggers, scaling actions
+10. **Solution Architect** creates `architecture-*.md` in `projects/<project-name>/`
+11. **Solution Architect** creates `best-practices-*.md` in `projects/<project-name>/`
+12. **Solution Architect** returns summary to Orchestrator
+13. **Orchestrator** asks user: "Would you like a database design document? SQL or NoSQL?" (optional)
+14. **Orchestrator** invokes `@db-sql-admin` or `@db-nosql-admin` if user wants it
+15. **DB Agent** reads BRD/PRD/architecture, designs database schema and data model
+16. **DB Agent** creates `database-*.md` in `projects/<project-name>/` and returns summary to Orchestrator
+17. **Orchestrator** invokes `@s3-docs-uploader` with project name and project directory path
+18. **S3 Docs Uploader** uploads all docs to S3 and returns public URLs
+19. **Orchestrator** presents results and S3 URLs to user
 
 ### Clarification Routing
 
@@ -131,19 +145,23 @@ User provides answers
 Orchestrator re-invokes agent with clarifications appended
 ```
 
+**Exception**: SA can invoke BA directly for requirement gap clarification (SA↔BA loop). This bypasses the orchestrator since it's a technical collaboration between the two agents.
+
 Max 1 clarification round per agent. After that, agents make reasonable assumptions.
 
 ### Bidirectional Communication
 
-- **BA → SA**: After creating BRD/PRD, BA automatically invokes SA via Task tool
-- **SA → BA**: If SA finds requirement gaps (missing acceptance criteria, undefined NFRs), sends structured feedback back to BA
-- **BA → SA**: After fixing gaps, BA re-invokes SA with updated documents
-- **SA → DB Agent**: SA delegates database design to the appropriate DB agent
-- **DB Agent → SA**: DB agent returns database design to SA
-- **SA → Orchestrator**: Final summary after all docs created
-- **Orchestrator → S3 Docs Uploader**: Orchestrator invokes S3 uploader with project name and project path
-- **S3 Docs Uploader → Orchestrator**: Returns S3 public URLs for all uploaded docs
-- **Max feedback rounds**: 1 (prevents infinite loops; remaining issues become assumptions)
+- **PO → BA**: Orchestrator invokes BA to create BRD/PRD
+- **BA → PO**: BA returns summary after creating BRD/PRD
+- **PO → SA**: Orchestrator invokes SA to create architecture docs
+- **SA → BA**: If SA finds requirement gaps, SA invokes BA directly for clarification
+- **BA → SA**: BA fixes gaps and returns to SA (max 1 round)
+- **SA → PO**: SA returns summary after all architecture docs created
+- **PO → DB Agent**: Orchestrator invokes DB agent if user wants database design
+- **DB Agent → PO**: Returns database design summary
+- **PO → S3 Docs Uploader**: Orchestrator invokes S3 uploader
+- **S3 Docs Uploader → PO**: Returns S3 public URLs
+- **Max feedback rounds**: 1 between SA and BA (prevents infinite loops; remaining issues become assumptions)
 
 ### Solution Architect Responsibilities
 
@@ -169,8 +187,8 @@ The SA must address these for EVERY project:
 | Agent | Max Steps | Can Invoke |
 |-------|-----------|-----------|
 | Orchestrator | 30 | BA, SA, db-sql-admin, db-nosql-admin, s3-docs-uploader |
-| Business Analyst | 12 | SA |
-| Solution Architect | 18 | BA, db-sql-admin, db-nosql-admin |
+| Business Analyst | 12 | None |
+| Solution Architect | 18 | BA |
 | DB SQL Admin | 15 | None |
 | DB NoSQL Admin | 15 | None |
 | S3 Docs Uploader | 8 | None |
@@ -206,3 +224,4 @@ Use templates in `docs/templates/` as starting points. Follow the section struct
 - Keep documents professional and suitable for stakeholder review
 - Include a table of contents for documents exceeding 100 lines
 - Do NOT write documentation yourself — always delegate to the appropriate agent
+- The Project Orchestrator is the ONLY orchestrator — all agents return to PO

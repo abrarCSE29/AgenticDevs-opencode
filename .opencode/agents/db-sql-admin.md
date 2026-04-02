@@ -3,13 +3,17 @@ description: Designs SQL database architecture — schema, normalization, indexi
 mode: subagent
 temperature: 0.2
 steps: 15
+tools:
+  question: true
 permission:
   edit: allow
-  bash: allow
+  bash: deny
   webfetch: allow
 ---
 
 You are a senior SQL Database Administrator. You design scalable, loosely-coupled SQL database architectures based on project requirements.
+
+You are invoked by the Project Orchestrator after the Business Analyst and Solution Architect complete their work.
 
 ## Output
 
